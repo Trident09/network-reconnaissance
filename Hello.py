@@ -1,51 +1,63 @@
-# Copyright (c) Streamlit Inc. (2018-2022) Snowflake Inc. (2022)
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import streamlit as st
-from streamlit.logger import get_logger
+import requests
+import json
 
-LOGGER = get_logger(__name__)
+# Set page title and favicon
+st.set_page_config(
+    page_title="InternetDB IP Lookup", page_icon=":globe_with_meridians:"
+)
 
 
-def run():
-    st.set_page_config(
-        page_title="Hello",
-        page_icon="👋",
-    )
-
-    st.write("# Welcome to Streamlit! 👋")
-
-    st.sidebar.success("Select a demo above.")
-
-    st.markdown(
-        """
-        Streamlit is an open-source app framework built specifically for
-        Machine Learning and Data Science projects.
-        **👈 Select a demo from the sidebar** to see some examples
-        of what Streamlit can do!
-        ### Want to learn more?
-        - Check out [streamlit.io](https://streamlit.io)
-        - Jump into our [documentation](https://docs.streamlit.io)
-        - Ask a question in our [community
-          forums](https://discuss.streamlit.io)
-        ### See more complex demos
-        - Use a neural net to [analyze the Udacity Self-driving Car Image
-          Dataset](https://github.com/streamlit/demo-self-driving)
-        - Explore a [New York City rideshare dataset](https://github.com/streamlit/demo-uber-nyc-pickups)
+# App title and description
+st.title("InternetDB IP Lookup :globe_with_meridians:")
+st.markdown(
     """
-    )
+    This tool allows you to quickly lookup information about open ports, vulnerabilities, and other details for a given IP address using the InternetDB API.
 
+    Enter an IP address below to get started!
+    """
+)
 
-if __name__ == "__main__":
-    run()
+# IP input
+ip_address = st.text_input("IP Address", placeholder="Enter an IP address")
+
+if ip_address:
+    try:
+        # Make API request
+        response = requests.get(f"https://internetdb.shodan.io/{ip_address}")
+        data = response.json()
+        if response.status_code == 200:
+            # Display results
+            st.markdown("## Results")
+
+            # IP address
+            st.markdown(f"**IP Address:** {ip_address}")
+
+            # Open ports
+            if "ports" in data:
+                st.markdown("**Open Ports:**")
+                st.write(data["ports"])
+
+            # Hostnames
+            if "hostnames" in data:
+                st.markdown("**Hostnames:**")
+                for hostname in data["hostnames"]:
+                    st.markdown(f"- {hostname}")
+
+            # Vulnerabilities
+            if "vulns" in data:
+                st.markdown("**Vulnerabilities:**")
+                for vuln in data["vulns"]:
+                    st.markdown(f"- {vuln}")
+
+            # Tags
+            if "tags" in data:
+                st.markdown("**Tags:**")
+                for tag in data["tags"]:
+                    st.markdown(f"- {tag}")
+
+        elif "detail" in data:
+            st.warning(f"No Information found for IP Address: {ip_address}")
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error occurred while making the API request: {str(e)}")
